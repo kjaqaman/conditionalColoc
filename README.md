@@ -2,7 +2,7 @@
 
 conditionalColoc is a software, written in Matlab, for analyzing the colocalization relationships between objects in three-channel microscopy images. 
 
-Conceptually, it divides the channels into target, reference and condition, and addresses the question whether the extent of target colocalization with reference is influenced, positively or negatively, with target and/or reference colocalization with condition.
+Conceptually, it divides the channels into target, reference and condition, and addresses the question whether the extent of target colocalization with reference is influenced, positively or negatively, by target and/or reference colocalization with condition.
 
 It handles two types of three-channel images:
 
