@@ -11,7 +11,8 @@ function simulatedColoc = runColocalizationAnalysisSimulation(simulationType,num
 %INPUT
 % Needed parameters for all types of simulation
 %   simulationType: type of colocalization you want to simulate
-%                   Options: 'Pt2Pt', 'Pt2Blob', 'Pt2Pt2Pt', 'Pt2Pt2Blob'
+%                   Options: 'Pt2Pt', 'Pt2Blob', 'Pt2Pt2Pt', 'Pt2Pt2Blob',
+%                            'General', 'Blob2Blob' 
 %
 %   numTarDetect: scalar or vector containing number of traget objects
 %
@@ -115,9 +116,15 @@ function simulatedColoc = runColocalizationAnalysisSimulation(simulationType,num
 %                                        and condition
 %                    Defualt: [3 3 3] (pixels)
 %
+%   numRandomizations: number of randomizations to be used for calculating
+%                      randC value. (see vega-Lugo et al. 2022 for randC defintion)
+%                      Default: 1
+%
 %%%%%%%%%%Pt2Pt2Blob simulation (two punctate, one non-punctate)%%%%%%%%%%%
 %
 % Needed parameters for Pt2Pt2Blob simulation
+%   numRefDetect: scalar or vector containing number of reference objects
+%
 %   segmentations: cell array containing binary images of segmentations of
 %                  non-punctate objects. Number of simulations will be equal to
 %                  number of segmented images.
@@ -152,31 +159,77 @@ function simulatedColoc = runColocalizationAnalysisSimulation(simulationType,num
 %                                        and condition
 %                    Defualt: [3 3 3] (pixels)
 %
-%OUTPUT
-%   simulatedColoc: structure array with number of entries equal to the
-%                   number of parameter combinations, containing the
-%                   following fields:
+%   numRandomizations: number of randomizations to be used for calculating
+%                      randC value. (see vega-Lugo et al. 2022 for randC defintion)
+%                      Default: 1
 %
-%                   Fields containing results: 
-%                       colocalization: contains a cell array where each
-%                                       row represents one simulation. See
-%                                       core function of each type of
-%                                       simulation for more details on
-%                                       colocalization output.
+%%%%%%%%%%General simulation (any combination of punctate or non-punctate object)%%%%%%%%%%%
 %
-%                       numOfObjects: contains cell array where rows
-%                                     represents one simulation. See core
-%                                     function of each type of simulation
-%                                     for more details on colocalization
-%                                     output. NOTE: this field is only
-%                                     relevant for pt2pt2pt and pt2pt2blob
-%                                     simulations.
+% Needed parameters for general cond coloc simulation
+%   numRefDetect: scalar or vector containing number of reference objects
 %
-%                   Remaining fields describe input parameters as relevant
-%                   for each type of simulation. Field names are identical
-%                   to input paramters names.
+%   segmentations: cell array containing binary images of segmentations of
+%                  non-punctate objects. Number of simulations will be equal to
+%                  number of segmented images.
 %
-%Jesus Vega-Lugo Dec. 2020
+%       cellMasks: cell array containing binary images of ROIs
+%                  NOTE: number of cell masks must be equal to the number
+%                  of segmentations. 
+%
+%   refColocWithCondFrac: scalar or vector containing the fraction of 
+%                         reference objects that colocalize with condition.
+%
+%   tarColocWithCondFrac: scalar or vector containing the fraction of target 
+%                         objects that colocalize with condition.
+%
+%   tarColocWithRefAtCondFrac: scalar or vector containing the fraction of 
+%                              target objects colocalized with reference 
+%                              objects when target colocalizes with
+%                              condition.
+%
+%   tarColocWithRefNotAtCondFrac: scalar or vector containing the fraction 
+%                                 of target objects colocalized with
+%                                 reference objects when target doesn't
+%                                 colocalize with condition.
+%
+%   colocDistThresh: Vector containing distance thresholds for conditional
+%                    colocalization analysis
+%                    colocDistThresh(1): threshold between 
+%                                        reference and target
+%                    colocDistThresh(2): threshold between reference
+%                                        and condition
+%                    colocDistThresh(3): threshold between target
+%                                        and condition
+%                    Defualt: [3 3 3] (pixels)
+%   numTarRefRand: number of target randomizations to assess conditional
+%                  colocalization between target and reference
+%                  Default 1:
+%
+%   numCondRand: number of condition randomizations to calculate randC
+%                (see vega-Lugo et al. 2022 for randC defintion)
+%                Default: 1 
+%
+%   tarBlobOrPt: 1 to create non-punctate traget object, 0 for creating
+%                punctate target object. Default: 1
+%
+%
+%   refBlobOrPt: 1 to create non-punctate reference object, 0 for creating
+%                punctate reference object. Default: 1
+%
+% Below parameters are only needed if tarBlobOrPt and/or refBlobOrPt = 1
+%
+%   lineLength: length of line to be used to dilate the center of
+%               non-punctate target and reference objects. Default: 7
+%
+%   tarDiskSize: radius for disk to dilate initial line dilation of target
+%                objects. Default: 5
+%
+%   refDiskSize: radius for disk to dilate initial line dilation of
+%                reference objects. Default: 3
+%
+%
+%Jesus Vega-Lugo December 2020
+%Jesus Vega-Lugo added blob2blob and general types of colocalization Jan. 2022
 %
 % Copyright (C) 2021, Jaqaman Lab - UTSouthwestern 
 %
@@ -196,7 +249,6 @@ function simulatedColoc = runColocalizationAnalysisSimulation(simulationType,num
 % along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
 % 
 % 
-
 %% Parse Parameters
 
 ip = inputParser;
@@ -207,7 +259,7 @@ addRequired(ip,'simulationType',@ischar);
 addRequired(ip,'numTarDetect',@(x) isscalar(x) || isvector(x))
 
 addParameter(ip,'colocDistRange',[],@isvector)
-addParameter(ip,'numRefDetect',@(x) isscalar(x) || isvector(x))
+addParameter(ip,'numRefDetect',[],@(x) isscalar(x) || isvector(x))
 addParameter(ip,'numCondDetect',[], @(x) isscalar(x) || isvector(x))
 
 addParameter(ip,'segmentations',[],@(x) iscell(x) || islogical(x))
@@ -217,13 +269,22 @@ addParameter(ip,'simAreaSideLength',[],@isscalar)
 addParameter(ip,'repeats',@isscalar)
 
 addParameter(ip,'colocFraction',[],@(x) isscalar(x) || isvector(x))
-addParameter(ip,'refColocWithCondFrac',[], @(x) isscalar(x) || isvector(x))
-addParameter(ip,'tarColocWithCondFrac',[], @(x) isscalar(x) || isvector(x))
-addParameter(ip,'tarColocWithRefAtCondFrac',[], @(x) isscalar(x) || isvector(x))
-addParameter(ip,'tarColocWithRefNotAtCondFrac',[], @(x) isscalar(x) || isvector(x))
+addParameter(ip,'refColocWithCondFrac',0.25, @(x) isscalar(x) || isvector(x))
+addParameter(ip,'tarColocWithCondFrac',0.25, @(x) isscalar(x) || isvector(x))
+addParameter(ip,'tarColocWithRefAtCondFrac', 0.25, @(x) isscalar(x) || isvector(x))
+addParameter(ip,'tarColocWithRefNotAtCondFrac',0.25, @(x) isscalar(x) || isvector(x))
 
 addParameter(ip,'distThresh',3,@isscalar)
 addParameter(ip,'colocDistThresh',[3 3 3],@isvector)
+addParameter(ip,'numRandomizations',1,@isscalar)
+
+addParameter(ip,'numTarRefRand',1,@isscalar)
+addParameter(ip,'numCondRand',1,@isscalar)
+addParameter(ip,'tarBlobOrPt',1,@(x) x == 0 || x == 1)
+addParameter(ip,'refBlobOrPt',1,@(x) x == 0 || x == 1)
+addParameter(ip,'refDiskSize',5,@(x) isscalar(x) || isvector(x))
+addParameter(ip,'tarDiskSize',3,@(x) isscalar(x) || isvector(x))
+addParameter(ip,'lineLength',7,@isscalar)
 
 parse(ip,simulationType,numTarDetect,varargin{:})
 
@@ -249,14 +310,23 @@ tarColocWithRefNotAtCondFrac = ip.Results.tarColocWithRefNotAtCondFrac;
 
 distThresh = ip.Results.distThresh;
 colocDistThresh = ip.Results.colocDistThresh;
+numRandomizations = ip.Results.numRandomizations;
+
+tarBlobOrPt = ip.Results.tarBlobOrPt;
+refBlobOrPt = ip.Results.refBlobOrPt;
+refDiskSize = ip.Results.refDiskSize;
+tarDiskSize = ip.Results.tarDiskSize;
+numTarRefRand = ip.Results.numTarRefRand;
+numCondRand = ip.Results.numCondRand;
+lineLength = ip.Results.lineLength;
 
 if isempty(colocDistRange)
     switch simulationType
 
-        case {'pt2pt' 'Pt2Pt' 'Pt2pt' 'pt2Pt' 'pt2blob' 'Pt2Blob' 'Pt2blob' 'pt2Blob'}
+        case {'pt2pt' 'Pt2Pt' 'Pt2pt' 'pt2Pt' 'pt2blob' 'Pt2Blob' 'Pt2blob' 'pt2Blob' 'blob2blob' 'Blob2Blob' 'blob2Blob' 'Blob2blob'}
             colocDistRange = [0 distThresh - 2];
 
-        case {'pt2pt2pt' 'Pt2Pt2Pt' 'pt2pt2blob' 'Pt2Pt2Blob'}
+        case {'pt2pt2pt' 'Pt2Pt2Pt' 'pt2pt2blob' 'Pt2Pt2Blob' 'general'}
             colocDistRange =[0  max(colocDistThresh) - 2];
             
         otherwise
@@ -438,6 +508,64 @@ switch simulationType
             end
         end
         
+    case {'blob2blob' 'Blob2Blob' 'blob2Blob' 'Blob2blob'}
+        tic
+        
+        repeats = length(segmentations);
+        if repeats == 0
+            error('A cell array with segmentations of non-punctate objects must be input. See function documentation.')
+        
+        elseif isempty(cellMasks) || length(cellMasks) ~= repeats
+            error('A cell array with the same number of cell masks as there segmentaitons must be input. See function documentation.')
+            
+        end
+        %get number of values per parameter
+        valsNumTarDetect = length(numTarDetect);
+        vecColocFrac = length(colocFraction);
+        
+        if valsNumTarDetect == 0
+            error('Must input at least one value for numTarDetect.')
+            
+        elseif vecColocFrac == 0
+            error('Must input at least one value for colocFraction')
+        end
+        
+        %prealocate space for output
+        simulatedColoc = repmat(struct('simulationType',[],'numTarDetect',[],'colocDistRange',[],...
+            'colocFraction',[],'repeats',[],'distThresh',[],'colocalization',[]),...
+            valsNumTarDetect*vecColocFrac,1);
+        
+        c = 0;
+        %go over target values
+        for iTar = 1:valsNumTarDetect
+            %go over colocalization fraction values
+            for iColocFrac = 1:vecColocFrac
+                colocalization = NaN(repeats,2);
+                
+                %repeat simulation
+                for iSeg = 1:repeats
+                    [colocalization(iSeg,1), colocalization(iSeg,2)] = simulateBlob2BlobColoc(segmentations{iSeg},numTarDetect(iTar),...
+                        cellMasks{iSeg},colocFraction(iColocFrac),'colocDistRange',...
+                        colocDistRange,'distThresh',distThresh,'tarDiskSize',tarDiskSize,...
+                        'tarBlobOrPt',tarBlobOrPt,'lineLength',lineLength,...
+                        'numRandomizations',numRandomizations);
+                end
+                %store simulation parameters and colocalization results
+                c = c + 1;
+                simulatedColoc(c).simulationType = simulationType;
+                simulatedColoc(c).numTarDetect = numTarDetect(iTar);
+                simulatedColoc(c).colocDistRange = colocDistRange;
+                simulatedColoc(c).colocFraction = colocFraction(iColocFrac);
+                simulatedColoc(c).repeats = repeats;
+                simulatedColoc(c).distThresh = distThresh;
+                simulatedColoc(c).colocalization = colocalization;
+                simulatedColoc(c).tarBlobOrPt = tarBlobOrPt;
+                simulatedColoc(c).tarDiskSize = tarDiskSize;
+                simulatedColoc(c).lineLength = lineLength;
+                simulatedColoc(c).numRandomizations = numRandomizations;
+            end
+        end
+        toc
     case {'pt2pt2pt' 'Pt2Pt2Pt'}
         
         %get number of values per parameter
@@ -565,7 +693,8 @@ switch simulationType
                             ptMasks{iRepeat},cellMasks{iRepeat},refColocWithCondFrac(iColocRefWithCond),...
                             tarColocWithCondFrac(iColocTarWithCond),tarColocWithRefAtCondFrac(iColocTarWithRefAtCond),...
                             tarColocWithRefNotAtCondFrac(iColocTarWithRefNotAtCond),...
-                            'colocDistRange',colocDistRange,'colocDistThresh',colocDistThresh);
+                            'colocDistRange',colocDistRange,'colocDistThresh',colocDistThresh,...
+                            'numRandomizations',numRandomizations);
                         r = r + 1;
                     end
                     %store simulation parameters and colocalization results
@@ -583,6 +712,7 @@ switch simulationType
                     simulatedColoc(c).colocDistThresh = colocDistThresh;
                     simulatedColoc(c).colocalization = colocMeasure;
                     simulatedColoc(c).numOfObjects = numOfObjects;
+                    simulatedColoc(c).numRandomizations = numRandomizations;
                     if usingSquare == 1
                         simulatedColoc(c).simAreaSideLength = simAreaSideLength;
                     end
@@ -667,8 +797,8 @@ switch simulationType
                         [colocMeasure{r,1}, numOfObjects{r,1}] = simulatePt2Pt2BlobCondColoc(numRefDetect(iRef),numTarDetect(iTar),...
                             segmentations{iRepeat},cellMasks{iRepeat},refColocWithCondFrac(iColocRefWithCond),...
                             tarColocWithCondFrac(iColocTarWithCond),tarColocWithRefAtCondFrac(iColocTarWithRefAtCond),...
-                            tarColocWithRefNotAtCondFrac(iColocTarWithRefNotAtCond),...
-                            'colocDistRange',colocDistRange,'colocDistThresh',colocDistThresh);
+                            tarColocWithRefNotAtCondFrac(iColocTarWithRefNotAtCond),'colocDistRange',colocDistRange,...
+                            'colocDistThresh',colocDistThresh,'numRandomizations',numRandomizations);
                         r = r + 1;
                     end
                     %store simulation parameters and colocalization results
@@ -685,6 +815,124 @@ switch simulationType
                     simulatedColoc(c).colocDistThresh = colocDistThresh;
                     simulatedColoc(c).colocalization = colocMeasure;
                     simulatedColoc(c).numOfObjects = numOfObjects;
+                    simulatedColoc(c).numRandomizations = numRandomizations;
+                end
+                end
+                end
+                end
+        end
+        end
+        
+    case {'General' 'general'}
+        
+        %get number of values per parameter
+        valsNumRefDetect = length(numRefDetect);
+        valsNumTarDetect = length(numTarDetect);
+        
+        valsRefColocWithCondFrac = length(refColocWithCondFrac);
+        valsTarColocWithCondFrac = length(tarColocWithCondFrac);
+        valsTarColocWithRefAtCondFrac = length(tarColocWithRefAtCondFrac);
+        valsTarColocWithRefNotAtCondFrac = length(tarColocWithRefNotAtCondFrac);
+        
+        valsTarDiskSize = length(tarDiskSize);
+        valsRefDiskSize = length(refDiskSize);
+        
+        if valsNumRefDetect == 0 
+            error('Must input at least one value for numRefDetect.')
+            
+        elseif valsNumTarDetect == 0 
+            error('Must input at least one value for numTarDetect.')
+            
+        elseif valsRefColocWithCondFrac == 0
+            error('Must input at least one value for valsRefColocWithCondFrac')
+            
+        elseif valsTarColocWithCondFrac == 0
+            error('Must input at least one value for valsTarColocWithCondFrac')
+            
+        elseif valsTarColocWithRefAtCondFrac == 0
+            error('Must input at least one value for valsTarColocWithRefAtCondFrac')
+            
+        elseif valsTarColocWithRefNotAtCondFrac == 0
+            error('Must input at least one value for valsTarColocWithRefNotAtCondFrac')
+            
+        end
+        
+        %number of parameter combinations
+        combinations = valsNumRefDetect*valsNumTarDetect*...
+            valsRefColocWithCondFrac*valsTarColocWithCondFrac*valsTarColocWithRefAtCondFrac*...
+            valsTarColocWithRefNotAtCondFrac;
+        
+        %prealocate space for output
+        simulatedColoc = repmat(struct('simulationType',[],'numRefDetect',[],'numTarDetect',[],...
+            'colocDistRange',[],'refColocWithCond',[],'tarColocWithCond',[],...
+            'tarColocWithRefAtCond',[],'tarColocWithRefNotAtCond',[],'repeats',[],...
+            'colocDistThresh',[],'colocalization',[],'numOfObjects',[]),combinations,1);
+        
+        repeats = length(segmentations);
+        
+        if repeats == 0
+            error('A cell array with segmentations of non-punctate objects must be input. See function documentation.')
+        
+        elseif isempty(cellMasks) || length(cellMasks) ~= repeats
+            error('A cell array with the same number of cell masks as there segmentaitons must be input. See function documentation.')
+            
+        end
+        
+        
+        c = 0;
+        %go over reference values
+        for iRef = 1:valsNumRefDetect
+        %go over target values
+        for iTar = 1:valsNumTarDetect
+                %go over colocalization fractions values
+                for iColocRefWithCond = 1:valsRefColocWithCondFrac
+                for iColocTarWithCond = 1:valsTarColocWithCondFrac
+                for iColocTarWithRefAtCond = 1:valsTarColocWithRefAtCondFrac
+                for iColocTarWithRefNotAtCond = 1:valsTarColocWithRefNotAtCondFrac
+                    
+                    for iTarDisk = 1:valsTarDiskSize
+                    for iRefDisk = 1:valsRefDiskSize
+                        
+                        colocMeasure = cell(repeats,1);
+                        %numOfObjects = cell(repeats,1);
+                        r = 1;
+
+                        %repeat simulation
+                        for iRepeat = 1:repeats
+                            [colocMeasure{r,1}] = simulateCondColocGeneral(numRefDetect(iRef),numTarDetect(iTar),...
+                                segmentations{iRepeat},cellMasks{iRepeat},refColocWithCondFrac(iColocRefWithCond),...
+                                tarColocWithCondFrac(iColocTarWithCond),tarColocWithRefAtCondFrac(iColocTarWithRefAtCond),...
+                                tarColocWithRefNotAtCondFrac(iColocTarWithRefNotAtCond),'colocDistRange',colocDistRange,...
+                                'colocDistThresh',colocDistThresh,'numTarRefRand',numTarRefRand,'numCondRand',numCondRand,...
+                                'tarBlobOrPt',tarBlobOrPt,'refBlobOrPt',refBlobOrPt,'refDiskSize',refDiskSize(iRefDisk),...
+                                'tarDiskSize',tarDiskSize(iTarDisk),'lineLength',lineLength);
+                            r = r + 1;
+                        end
+                        %store simulation parameters and colocalization results
+                        c = c +1;
+                        simulatedColoc(c).simulationType = simulationType;
+                        simulatedColoc(c).numRefDetect = numRefDetect(iRef);
+                        simulatedColoc(c).numTarDetect = numTarDetect(iTar);
+                        simulatedColoc(c).colocDistRange = colocDistRange;
+                        simulatedColoc(c).refColocWithCond = refColocWithCondFrac(iColocRefWithCond);
+                        simulatedColoc(c).tarColocWithCond = tarColocWithCondFrac(iColocTarWithCond);
+                        simulatedColoc(c).tarColocWithRefAtCond = tarColocWithRefAtCondFrac(iColocTarWithRefAtCond);
+                        simulatedColoc(c).tarColocWithRefNotAtCond = tarColocWithRefNotAtCondFrac(iColocTarWithRefNotAtCond);
+                        simulatedColoc(c).repeats = repeats;
+                        simulatedColoc(c).colocDistThresh = colocDistThresh;
+                        simulatedColoc(c).colocalization = colocMeasure;
+                        simulatedColoc(c).numTarRefRand = numTarRefRand;
+                        simulatedColoc(c).numCondRand = numCondRand;
+                        simulatedColoc(c).tarBlobOrPt = tarBlobOrPt;
+                        simulatedColoc(c).refBlobOrPt = refBlobOrPt;
+                        simulatedColoc(c).tarDiskSize = tarDiskSize(iTarDisk);
+                        simulatedColoc(c).refDiskSize = refDiskSize(iRefDisk);
+                        simulatedColoc(c).lineLength = lineLength;
+                       pathToSave = fullfile('/project/biophysics/jaqaman_lab/vegf_tsp1/jvega/Conditional Colocalization/Simulations',...
+                            'General','CondSegRefBlobTarBlob');
+                        save([pathToSave '/temSimResult' num2str(c) '.mat'],'simulatedColoc')
+                    end
+                    end
                 end
                 end
                 end

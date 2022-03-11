@@ -39,7 +39,6 @@ function movieData = condColocPt2Pt2BlobWrapper(movieData, paramsIn)
 % along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
 % 
 % 
-
 %% Input
 % Will need to take previous process outputs from detection,segmentation and masking 
 % processes
@@ -243,20 +242,20 @@ function movieData = condColocPt2Pt2BlobWrapper(movieData, paramsIn)
         
         %Run Function
         [colocalMeasureCondBlobRef1Tar2, numObjCondBlobRef1Tar2] = condColocPt2Pt2Blob(detection1, detection2,...
-            segmentationData,currMask,p.ColocDistThresh([2 3]),p.ColocDistThresh(1),p.AlphaValue);          
+            segmentationData,currMask,p.ColocDistThresh([2 3]),p.ColocDistThresh(1),p.NumRandomizations,p.AlphaValue);          
 
         [colocalMeasureCondBlobRef2Tar1, numObjCondBlobRef2Tar1] = condColocPt2Pt2Blob(detection2, detection1,...
-            segmentationData,currMask,p.ColocDistThresh([3 2]),p.ColocDistThresh(1),p.AlphaValue);          
+            segmentationData,currMask,p.ColocDistThresh([3 2]),p.ColocDistThresh(1),p.NumRandomizations,p.AlphaValue);          
         
         [colocalMeasureCond2RefBlobTar1, numObjCond2RefBlobTar1] = condColocPt2Pt2Blob(segmentationData, detection1,...
-            detection2,currMask,p.ColocDistThresh([3 1]),p.ColocDistThresh(2),p.AlphaValue);          
+            detection2,currMask,p.ColocDistThresh([3 1]),p.ColocDistThresh(2),p.NumRandomizations,p.AlphaValue);          
         
-        colocalMeasureCond2RefBlobTar1((3:6),:) = nan; 
+        %colocalMeasureCond2RefBlobTar1((3:4),:) = nan; 
         
         [colocalMeasureCond1RefBlobTar2, numObjCond1RefBlobTar2] = condColocPt2Pt2Blob(segmentationData, detection2,...
-            detection1,currMask,p.ColocDistThresh([2 1]),p.ColocDistThresh(3),p.AlphaValue); 
+            detection1,currMask,p.ColocDistThresh([2 1]),p.ColocDistThresh(3),p.NumRandomizations,p.AlphaValue); 
         
-        colocalMeasureCond1RefBlobTar2((3:6),:) = nan;
+        %colocalMeasureCond1RefBlobTar2((3:4),:) = nan;
         
         colocalizationParameters.detectedChannels = p.DetectedChannels;
         colocalizationParameters.blobChannel = p.ChannelBlob;

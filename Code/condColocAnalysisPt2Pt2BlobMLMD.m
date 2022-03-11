@@ -47,11 +47,15 @@ function condColocAnalysisPt2Pt2BlobMLMD(MLMD,detectedChannels, blobChannel,vara
 %                           between 3 and 1 = 2.
 %                           Default: [3 3 3] (pixels)
 %
+%   numRandomizations: number of randomizations to be used for calculating
+%                      randC value. (see vega-Lugo et al. for randC defintion)
+%                      Default: 100
+%
 %       alphaValue:         Alpha value for comparing real data to random
 %                           (see colocalMeasurePt2Pt)
 %                           Default: 0.05
 %                           NOTE: for conditional colocalization analysis
-%                           as described in Vega-Lugo et al. 2021 this
+%                           as described in Vega-Lugo et al. 2022 this
 %                           parameter is not relevant.
 %
 %OUPUT Output is saved in directory 
@@ -81,7 +85,6 @@ function condColocAnalysisPt2Pt2BlobMLMD(MLMD,detectedChannels, blobChannel,vara
 % along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
 % 
 % 
-
 %% Input
 
 
@@ -100,6 +103,7 @@ addRequired(ip,'blobChannel', @isscalar)
 %Add optional parameters
 addParameter(ip,'detectionProcessID',{'SubRes','SubRes'}, @iscell)
 addParameter(ip,'colocDistThresh', [3 3 3], @isvector)
+addParameter(ip,'numRandomizations',100,@isscalar)
 addParameter(ip,'alphaValue', 0.05, @isscalar)
 
 parse(ip,MLMD,detectedChannels,blobChannel,varargin{:})
@@ -162,6 +166,7 @@ for i = 1 : numMovies
     p.DetectionProcessID = ip.Results.detectionProcessID;
         
     p.ColocDistThresh = ip.Results.colocDistThresh;
+    p.NumRandomizations = ip.Results.numRandomizations;
     p.AlphaValue = ip.Results.alphaValue;
     
     MD.getProcess(iProcCondColoc).setParameters(p);

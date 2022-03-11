@@ -3,25 +3,24 @@ classdef SegmentBlobsPlusLocMaxSimpleProcess < DetectionProcess
     % Tony Vega 09/2017
     % Orginal Khuloud Jaqaman
     %
-    % Copyright (C) 2021, Jaqaman Lab - UTSouthwestern 
-    %
-    % This file is part of conditionalColoc.
-    % 
-    % conditionalColoc is free software: you can redistribute it and/or modify
-    % it under the terms of the GNU General Public License as published by
-    % the Free Software Foundation, either version 3 of the License, or
-    % (at your option) any later version.
-    % 
-    % conditionalColoc is distributed in the hope that it will be useful,
-    % but WITHOUT ANY WARRANTY; without even the implied warranty of
-    % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    % GNU General Public License for more details.
-    % 
-    % You should have received a copy of the GNU General Public License
-    % along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
-    % 
-    % 
-    
+% Copyright (C) 2021, Jaqaman Lab - UTSouthwestern 
+%
+% This file is part of conditionalColoc.
+% 
+% conditionalColoc is free software: you can redistribute it and/or modify
+% it under the terms of the GNU General Public License as published by
+% the Free Software Foundation, either version 3 of the License, or
+% (at your option) any later version.
+% 
+% conditionalColoc is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+% GNU General Public License for more details.
+% 
+% You should have received a copy of the GNU General Public License
+% along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
+% 
+%
     methods (Access = public)
         function obj = SegmentBlobsPlusLocMaxSimpleProcess(owner, varargin)
             % Input check
@@ -157,19 +156,15 @@ classdef SegmentBlobsPlusLocMaxSimpleProcess < DetectionProcess
             % moviePara  
             funParams.ChannelIndex =1:numel(owner.channels_);
             funParams.OutputDirectory = [outputDir  filesep 'SegmentBlobsPlusLocMaxSimple'];
-            funParams.firstImageNum = 1;
-            funParams.lastImageNum = owner.nFrames_;
-            funParams.ChannelMask = 2;
+
             
-            % detectionParam
-%             funParams.detectionParam.alphaLocMax = 0.05;            
-            funParams.detectionParam.thresholdMethod = 'otsu';
+            % detectionParam           
+            funParams.detectionParam.thresholdMethod = {'otsu'};
             funParams.detectionParam.methodValue = [];
             funParams.detectionParam.filterNoise = 1;
             funParams.detectionParam.filterBackground = 10;
             funParams.detectionParam.minSize = 20;
-            funParams.detectionParam.ChannelMask = 2;
-            funParams.detectionParam.locmax = 0;
+            funParams.detectionParam.locMax = 0;
         end
 
     end

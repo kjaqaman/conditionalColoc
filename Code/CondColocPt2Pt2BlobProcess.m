@@ -2,7 +2,7 @@ classdef CondColocPt2Pt2BlobProcess < ImageAnalysisProcess
    % A concreate class for measuring conditional colocalization between 3 images
    % Anthony Vega 09/2014
    %Adapted by Jesus Vega-Lugo (May, 2019) to run conditional colocalization 
-%
+   %
 % Copyright (C) 2021, Jaqaman Lab - UTSouthwestern 
 %
 % This file is part of conditionalColoc.
@@ -81,6 +81,7 @@ classdef CondColocPt2Pt2BlobProcess < ImageAnalysisProcess
             funParams.DetectedChannels = [1 3];
             funParams.ChannelBlob = 2;
             funParams.ColocDistThresh = [3 3 3];
+            funParams.NumRandomizations = 100;
             funParams.AlphaValue = 0.05;
             funParams.OutputDirectory = [outputDir  filesep];
             funParams.ProcessIndex = [];

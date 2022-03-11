@@ -43,7 +43,6 @@ function movieData = condColocPt2Pt2PtWrapper(movieData, paramsIn)
 % along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
 % 
 % 
-
 %% Input
 % Will need to take previous process outputs from detection,segmentation and masking
 % processes
@@ -214,35 +213,35 @@ detectionCh3 = movieInfo;
 if checkMask ~= 0
     currMask = imread([inMaskDir{1} filesep maskNames{1}{1}]);
 else
-    currMask = ones(movieData.imSize);
+    currMask = ones(movieData.imSize_);
 end
 currMask = logical(currMask);
 
 %Run Function
 %condColocPt2Pt2Pt(Ref,Tar,Cond...
 [colocalMeasureCond3Ref1Tar2, numDetectCond3Ref1Tar2] = condColocPt2Pt2Pt(detectionCh1,...
-    detectionCh2, detectionCh3,currMask, p.ColocDistThresh([2 3]),p.ColocDistThresh(1), p.AlphaValue);
+    detectionCh2, detectionCh3,currMask, p.ColocDistThresh([2 3]),p.ColocDistThresh(1),p.NumRandomizations, p.AlphaValue);
 
 
 %flip Ref and Tar. Now detectionTar is Ref and detectionRef is Tar
 [colocalMeasureCond3Ref2Tar1, numDetectCond3Ref2Tar1] = condColocPt2Pt2Pt(detectionCh2,...
-    detectionCh1, detectionCh3,currMask, p.ColocDistThresh([3 2]),p.ColocDistThresh(1), p.AlphaValue);
+    detectionCh1, detectionCh3,currMask, p.ColocDistThresh([3 2]),p.ColocDistThresh(1),p.NumRandomizations, p.AlphaValue);
 
 
 [colocalMeasureCond1Ref3Tar2, numDetectCond1Ref3Tar2] = condColocPt2Pt2Pt(detectionCh3,...
-    detectionCh2,detectionCh1,currMask, p.ColocDistThresh([2 1]),p.ColocDistThresh(3), p.AlphaValue);
+    detectionCh2,detectionCh1,currMask, p.ColocDistThresh([2 1]),p.ColocDistThresh(3),p.NumRandomizations, p.AlphaValue);
 
 
 [colocalMeasureCond1Ref2Tar3, numDetectCond1Ref2Tar3] = condColocPt2Pt2Pt(detectionCh2,...
-    detectionCh3,detectionCh1,currMask, p.ColocDistThresh([1 2]),p.ColocDistThresh(3), p.AlphaValue);
+    detectionCh3,detectionCh1,currMask, p.ColocDistThresh([1 2]),p.ColocDistThresh(3),p.NumRandomizations, p.AlphaValue);
 
 
 [colocalMeasureCond2Ref3Tar1, numDetectCond2Ref3Tar1] = condColocPt2Pt2Pt(detectionCh3,...
-    detectionCh1,detectionCh2,currMask, p.ColocDistThresh([3 1]),p.ColocDistThresh(2), p.AlphaValue);
+    detectionCh1,detectionCh2,currMask, p.ColocDistThresh([3 1]),p.ColocDistThresh(2),p.NumRandomizations, p.AlphaValue);
 
 
 [colocalMeasureCond2Ref1Tar3, numDetectCond2Ref1Tar3] = condColocPt2Pt2Pt(detectionCh1,...
-    detectionCh3,detectionCh2,currMask, p.ColocDistThresh([1 3]),p.ColocDistThresh(2), p.AlphaValue);
+    detectionCh3,detectionCh2,currMask, p.ColocDistThresh([1 3]),p.ColocDistThresh(2),p.NumRandomizations, p.AlphaValue);
 
 mkdir([p.OutputDirectory '/ConditionalColocPt2Pt2Pt'])
 save([p.OutputDirectory '/ConditionalColocPt2Pt2Pt/colocalInfoCond.mat'],'colocalMeasureCond2Ref3Tar1',...

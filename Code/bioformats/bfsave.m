@@ -31,25 +31,6 @@ function bfsave(varargin)
 %        bfsave(zeros(100, 100), outputPath, 'metadata', metadata)
 %
 % See also: BFGETREADER, CREATEMINIMALOMEXMLMETADATA
-%
-% Copyright (C) 2021, Jaqaman Lab - UTSouthwestern 
-%
-% This file is part of conditionalColoc.
-% 
-% conditionalColoc is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% conditionalColoc is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
-% 
-% 
 
 % OME Bio-Formats package for reading and converting biological file formats.
 %
@@ -84,9 +65,13 @@ ip.addRequired('I', @isnumeric);
 ip.addRequired('outputPath', @ischar);
 ip.addOptional('dimensionOrder', 'XYZCT', @(x) ismember(x, getDimensionOrders()));
 ip.addParamValue('metadata', [], @(x) isa(x, 'loci.formats.ome.OMEXMLMetadata'));
-ip.addParamValue('Compression', '',  @(x) ismember(x, getCompressionTypes()));
+ip.addParamValue('Compression', '',  @ischar);
 ip.addParamValue('BigTiff', false , @islogical);
 ip.parse(varargin{:});
+
+% Create Writer object from output path
+imageWriter = javaObject('loci.formats.ImageWriter');
+writer = imageWriter.getWriter(ip.Results.outputPath);
 
 % Create metadata
 if isempty(ip.Results.metadata)
@@ -99,15 +84,19 @@ else
     end
 end
 
-% Create ImageWriter
-writer = javaObject('loci.formats.ImageWriter');
 writer.setWriteSequentially(true);
 writer.setMetadataRetrieve(metadata);
 if ~isempty(ip.Results.Compression)
+    compressionTypes = getCompressionTypes(writer);
+    if ~ismember(ip.Results.Compression, compressionTypes)
+        e = MException('bfsave:unsupportedCompression', ...
+            'Unsupported compression: %s.', ip.Results.Compression);
+        throw(e);
+    end
     writer.setCompression(ip.Results.Compression);
 end
 if ip.Results.BigTiff
-    writer.getWriter(ip.Results.outputPath).setBigTiff(ip.Results.BigTiff);
+    writer.setBigTiff(ip.Results.BigTiff);
 end
 writer.setId(ip.Results.outputPath);
 
@@ -144,14 +133,13 @@ function dimensionOrders = getDimensionOrders()
 % List all values of DimensionOrder
 dimensionOrderValues = javaMethod('values', 'ome.xml.model.enums.DimensionOrder');
 dimensionOrders = cell(numel(dimensionOrderValues), 1);
-for i = 1 :numel(dimensionOrderValues),
+for i = 1 :numel(dimensionOrderValues)
     dimensionOrders{i} = char(dimensionOrderValues(i).toString());
 end
 end
 
-function compressionTypes = getCompressionTypes()
+function compressionTypes = getCompressionTypes(writer)
 % List all values of Compression
-writer = javaObject('loci.formats.ImageWriter');
 if is_octave()
     %% FIXME when https://savannah.gnu.org/bugs/?42700 gets fixed
     types = writer.getCompressionTypes();
