@@ -133,7 +133,7 @@ for i = 1:nChan
     [maskBlobs,labels,maskBlobsVis] = segmentBlobs_locmax(I,...
     thresholdMethod{ch},methodValue(ch),filterNoise(ch),filterBackground(ch),minSize(ch),locMax(ch),plotRes(ch),mask); 
         
-    save(strcat(saveResults(ch).dir,'/',saveResults(ch).filename),'maskBlobs','labels','maskBlobsVis');
+    save(fullfile(saveResults(ch).dir,saveResults(ch).filename),'maskBlobs','labels','maskBlobsVis');
 end
 
 end

@@ -24,25 +24,7 @@ function movieData = condColocPt2Pt2PtWrapper(movieData, paramsIn)
 %
 %
 % Jesus Vega-Lugo June 2019
-%
-% Copyright (C) 2021, Jaqaman Lab - UTSouthwestern 
-%
-% This file is part of conditionalColoc.
-% 
-% conditionalColoc is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% conditionalColoc is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
-% 
-% 
+
 %% Input
 % Will need to take previous process outputs from detection,segmentation and masking
 % processes
@@ -68,6 +50,15 @@ end
 p = parseProcessParams(movieData.processes_{iProc},paramsIn);
 
 
+%% set outFilePath
+
+currDir = fullfile(p.OutputDirectory,'ConditionalColocPt2Pt2Pt');
+outFilePath = fullfile(currDir,'colocalInfoCond.mat');
+condColocGeneralProc.setOutFilePaths(outFilePath)
+
+mkdir(currDir)
+
+%% load data
 
 %Define which process was masking process
 checkMask = 1;
@@ -243,12 +234,11 @@ currMask = logical(currMask);
 [colocalMeasureCond2Ref1Tar3, numDetectCond2Ref1Tar3] = condColocPt2Pt2Pt(detectionCh1,...
     detectionCh3,detectionCh2,currMask, p.ColocDistThresh([1 3]),p.ColocDistThresh(2),p.NumRandomizations, p.AlphaValue);
 
-mkdir([p.OutputDirectory '/ConditionalColocPt2Pt2Pt'])
-save([p.OutputDirectory '/ConditionalColocPt2Pt2Pt/colocalInfoCond.mat'],'colocalMeasureCond2Ref3Tar1',...
-    'colocalMeasureCond2Ref1Tar3','colocalMeasureCond3Ref2Tar1','colocalMeasureCond3Ref1Tar2',...
+save(outFilePath,'colocalMeasureCond2Ref3Tar1','colocalMeasureCond2Ref1Tar3',...
+    'colocalMeasureCond3Ref2Tar1','colocalMeasureCond3Ref1Tar2',...
     'colocalMeasureCond1Ref2Tar3','colocalMeasureCond1Ref3Tar2');
 
-save([p.OutputDirectory '/ConditionalColocPt2Pt2Pt/numOfObjects'],'numDetectCond2Ref3Tar1',...
+save(fullfile(currDir,'numOfObjects.mat'),'numDetectCond2Ref3Tar1',...
     'numDetectCond2Ref1Tar3','numDetectCond3Ref2Tar1','numDetectCond3Ref1Tar2',...
     'numDetectCond1Ref2Tar3','numDetectCond1Ref3Tar2');
     

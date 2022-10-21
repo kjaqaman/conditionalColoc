@@ -20,25 +20,7 @@ function movieData = condColocPt2Pt2BlobWrapper(movieData, paramsIn)
 % Outputs are saved in unique folder ColocalizationPt2Pt2Blob
 %   
 %Jesus Vega-Lugo 08/2019
-%
-% Copyright (C) 2021, Jaqaman Lab - UTSouthwestern 
-%
-% This file is part of conditionalColoc.
-% 
-% conditionalColoc is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% conditionalColoc is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
-% 
-% 
+
 %% Input
 % Will need to take previous process outputs from detection,segmentation and masking 
 % processes
@@ -73,7 +55,15 @@ function movieData = condColocPt2Pt2BlobWrapper(movieData, paramsIn)
         error('Invalid channel numbers specified! Check ChannelBlob input!!')
     end
     
+%% set outFilePath
 
+currDir = fullfile(p.OutputDirectory,'ColocalizationPt2Pt2Blob');
+outFilePath = fullfile(currDir,'colocalInfo.mat');
+condColocGeneralProc.setOutFilePaths(outFilePath)
+
+mkdir(currDir)
+
+%% load data
     %Define which process was masking process
     
         checkMask = 1;
@@ -261,15 +251,12 @@ function movieData = condColocPt2Pt2BlobWrapper(movieData, paramsIn)
         colocalizationParameters.blobChannel = p.ChannelBlob;
         colocalizationParameters.colocDistThresh = p.ColocDistThresh;
         
-    mkdir([p.OutputDirectory '/ColocalizationPt2Pt2Blob' ])
-    save([p.OutputDirectory '/ColocalizationPt2Pt2Blob/colocalInfo.mat'],...
-        'colocalMeasureCondBlobRef1Tar2','colocalMeasureCondBlobRef2Tar1',...
+    save(outFilePath,'colocalMeasureCondBlobRef1Tar2','colocalMeasureCondBlobRef2Tar1',...
         'colocalMeasureCond2RefBlobTar1','colocalMeasureCond1RefBlobTar2',...
         'colocalizationParameters');
     
-    save([p.OutputDirectory '/ColocalizationPt2Pt2Blob/numOfObjects.mat'],...
-        'numObjCondBlobRef1Tar2','numObjCondBlobRef2Tar1','numObjCond2RefBlobTar1',...
-        'numObjCond1RefBlobTar2')
+    save(fullfile(currDir,'numOfObjects.mat'),'numObjCondBlobRef1Tar2','numObjCondBlobRef2Tar1',...
+        'numObjCond2RefBlobTar1','numObjCond1RefBlobTar2')
 
 
 %% Save Results
