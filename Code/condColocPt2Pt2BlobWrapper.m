@@ -59,7 +59,6 @@ function movieData = condColocPt2Pt2BlobWrapper(movieData, paramsIn)
 
 currDir = fullfile(p.OutputDirectory,'ColocalizationPt2Pt2Blob');
 outFilePath = fullfile(currDir,'colocalInfo.mat');
-condColocGeneralProc.setOutFilePaths(outFilePath)
 
 mkdir(currDir)
 

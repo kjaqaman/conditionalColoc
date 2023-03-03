@@ -54,7 +54,6 @@ p = parseProcessParams(movieData.processes_{iProc},paramsIn);
 
 currDir = fullfile(p.OutputDirectory,'ConditionalColocPt2Pt2Pt');
 outFilePath = fullfile(currDir,'colocalInfoCond.mat');
-condColocGeneralProc.setOutFilePaths(outFilePath)
 
 mkdir(currDir)
 
