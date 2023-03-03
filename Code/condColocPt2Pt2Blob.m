@@ -1,5 +1,5 @@
 function [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoords,condCoords,...
-                            mask,distThreshToColocWithCond, colocDistThresh, alpha)
+                            mask,distThreshToColocWithCond, colocDistThresh,numRandomizations, alpha)
 %CONDCOLOCPT2PT2BLOB runs conditional colocalization for 2 channels of punctate objects with one channel non-punctate object 
 %
 %SYNOPSIS  [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoords,condCoords,...
@@ -59,11 +59,15 @@ function [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoord
 %                   (see function colocalMeasurePt2Pt)
 %
 %Optional
+%   numRandomizations: number of randomizations to be used for calculating
+%                      randC value. (see vega-Lugo et al. 2022 for randC defintion)
+%                      Default: 100
+%
 %   alpha:          significance value for colocalization
 %                   (see function colocalMeasurePt2Pt)
 %                   Default: 0.05
 %                   NOTE: for conditional colocalization analysis
-%                         as described in Vega-Lugo et al. 2021 this
+%                         as described in Vega-Lugo et al. 2022 this
 %                         parameter is not relevant.
 %
 %OUTPUT
@@ -71,7 +75,7 @@ function [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoord
 %                   colocalization measures.
 %
 %                   Rows contain the following (please see Vega-Lugo et al.
-%                   2021 for more detailed expalnation of below measures):
+%                   2022 for more detailed expalnation of below measures):
 %
 %                         Row1: p(TwR|TwC): probability of target
 %                               colocalizing with reference given that 
@@ -80,34 +84,23 @@ function [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoord
 %                         Row2: p(TwR|TnC): probability of target
 %                               colocalizing with reference given that
 %                               target does not colocalize with condition.
-%
-%                         Row3: p^rs(Tw(RwC)|TwC): rescaled probability of 
-%                               target colocalizing with a reference that
-%                               is itself colocalizing with condition given 
-%                               that target is colocalizing with conditon.
-%
-%                         Row4: p^rs(Tw(RnC)|TnC): rescaled probability of 
-%                               target colocalizing with a reference that
-%                               is itself not colocalizing with condition 
-%                               given that target is not colocalizing with 
-%                               conditon.
-%
-%                         Row5: p^rs(Tw(RwC)): rescaled probability of 
+%                         
+%                         Row3: p^rs(Tw(RwC)): rescaled probability of 
 %                               target colocalizing with a reference that
 %                               is itself colocalizing with condition.
 %
-%                         Row6: p^rs(Tw(RnC)): rescaled probability of 
+%                         Row4: p^rs(Tw(RnC)): rescaled probability of 
 %                               target colocalizing with a reference that
 %                               is itself not colocalizing with condition.
 %
-%                         Row7: p(TwR): probability of target colocalizing
+%                         Row5: p(TwR): probability of target colocalizing
 %                               with reference (regardless of either's
 %                               colocalization with condition)
 %
-%                         Row8: p(RwC): probability of reference
+%                         Row6: p(RwC): probability of reference
 %                               colocalizing with condition.
 %
-%                         Row9: p(TwC): probability of target
+%                         Row7: p(TwC): probability of target
 %                               colocalizing with condition.
 %
 %                   Columns contain the following:
@@ -121,7 +114,7 @@ function [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoord
 %                                  NOTE: this value is has not been
 %                                  validated for rescaled probabilities. It 
 %                                  is not used for the analysis in Vega-Lugo
-%                                  et al. 2021.
+%                                  et al. 2022.
 %                        Column 4: ratio of column one to column two  
 %           
 %                   Third dimesion contains:
@@ -131,7 +124,7 @@ function [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoord
 %                                             after randomizing condition
 %                                             objects (randC)
 %
-%       NOTE: Rows 8 and 9 will only contain values in column one. For all
+%       NOTE: Rows 6 and 7 will only contain values in column one. For all
 %       other rows, NaN indicates not enough objects for analysis (minimum
 %       number of objects needed is 20)
 %
@@ -147,12 +140,12 @@ function [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoord
 %                      RnC: number of reference not with conditon
 %                  AllCond: total number of condition objects
 %                  ROIArea: cell area (pixels)
-%       CondAreas/RefAreas: areas of non-punctate objects (pixels)
+%       CondAreas/RefAreas: areas of non-punctate objects (pixels) 
 %
 %              **Target and reference with or without condition contain 
 %                a vector where the first entry shows number of molecules 
-%                from the data. Second entry shows number of molecules after
-%                randomizing the condition.
+%                from the data. Second entry shows average number of
+%                molecules after numRandomization of the condition.
 %
 %Jesus Vega-Lugo August 2019
 %
@@ -160,25 +153,6 @@ function [colocalMeasure, numOfObjects] = condColocPt2Pt2Blob(refCoords,tarCoord
 %randomization of condition when it is punctate object to erode the mask
 %so randomized punctate condition positions don't fall close the edge of
 %the cell mask
-%
-% Copyright (C) 2021, Jaqaman Lab - UTSouthwestern 
-%
-% This file is part of conditionalColoc.
-% 
-% conditionalColoc is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-% 
-% conditionalColoc is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with conditionalColoc.  If not, see <http://www.gnu.org/licenses/>.
-% 
-% 
 
 %% Parse inputs
 
@@ -224,6 +198,11 @@ if isempty(colocDistThresh)
     error('Colocalization threshold must be input')
 end
 
+%set number of randomizations
+if isempty(numRandomizations)
+    numRandomizations = 100;
+end
+
 %set default alpha
 if isempty(alpha)
     alpha = 0.05;
@@ -234,6 +213,7 @@ end
 %when blobs are the reference channel
 
 if iscell(refCoords)
+    isRefBlob = 1;
     
     nBlobs = length(refCoords);
     blobsizes = cellfun(@length,refCoords(:,1));
@@ -267,7 +247,7 @@ if iscell(refCoords)
 
 
 else %when blob channel is the condition
-    
+    isRefBlob = 0;
     %get coordinates inside the mask for referene channel
 
     %convert coordinates to indices. NOTE: sub2ind assumes matrix coordinates.
@@ -308,6 +288,18 @@ tarCoordstruct.yCoord = tarCoordVec(:,2);
 
 %% Create random coordinates for the condition
 
+if iscell(condCoordVec)
+    vec = cell2mat(condCoordVec(:,1));
+    numCondCoords = length(vec);
+    condRandRealCoords = NaN(numCondCoords,2,numRandomizations+1);
+    condRandRealCoords(:,:,1) = cell2mat(condCoordVec(:,1));
+else
+    numCondCoords = length(condCoordVec);
+    condRandRealCoords = NaN(numCondCoords,2,numRandomizations+1);
+    condRandRealCoords(:,:,1) = condCoordVec;
+end
+
+for repeat = 2:numRandomizations+1
 %when condition is blob channel
 if iscell(condCoordVec)
     %number of blobs in the condition channel
@@ -316,7 +308,6 @@ if iscell(condCoordVec)
     
     numOfObjects.AllCond = nblobs;
     numOfObjects.CondAreas = blobsizes;
-    flag = 0;
        
     [~, sortIdx] = sort(blobsizes,'descend');
     
@@ -372,10 +363,10 @@ if iscell(condCoordVec)
         cellMaskWithblobs(shiftBlobCoord) = 0;
         erodeMask = cellMaskWithblobs;
     end
-    %store real and rand coordinates for blobs
-    condRandRealCoords(:,:,1) = cell2mat(condCoordVec(:,1));
-    condRandRealCoords(:,:,2) = cell2mat(condRandCoordVec);
-    %condRandRealCoords(condRandRealCoords) = 1;
+    
+    %store rand coordinates for blobs
+    condRandRealCoords(:,:,repeat) = cell2mat(condRandCoordVec);
+    
     
 else %when condtion is punctate
 
@@ -383,10 +374,6 @@ else %when condtion is punctate
     nCondDetect = size(condCoordVec,1);
     
     numOfObjects.AllCond = nCondDetect;
-    flag = 1;
-
-    %stores coordinates of the data 
-    condRandRealCoords(:,:,1) = condCoordVec;
     
     %create random detection coords inside the mask for condition channel
     erodeMask = mask;
@@ -395,19 +382,30 @@ else %when condtion is punctate
     erodeMask(:,1) = 0;
     erodeMask(:,size(erodeMask,2)) = 0;
     
-    erodeMask = imerode(erodeMask,strel('square',max([distThreshToColocWithCond,colocDistThresh])+3));
+    erodeMask = imerode(erodeMask,strel('square',3));
     
     [maskCoords(:,1), maskCoords(:,2)] = find(erodeMask);
 
-    condRandRealCoords(:,:,2) = datasample(maskCoords,nCondDetect,'Replace',false);
+    condRandRealCoords(:,:,repeat) = datasample(maskCoords,nCondDetect,'Replace',false);
 
 end
+end
 %% Separate detections in linked and not linked
+numTwC = NaN(1,numRandomizations+1);
+numTnC = NaN(1,numRandomizations+1);
+
+numRwC = NaN(1,numRandomizations+1);
+numRnC = NaN(1,numRandomizations+1);
+
+totalRefDetect = size(refCoordVec,1);
+totalTarDetect = size(tarCoordVec,1);
+
+numOfObjects.AllTar(1,1) = totalTarDetect;
 
 %initialize matrix for storing colocalization values. See colocalization section 
-colocalMeasure = NaN(9,4,2);
+colocalMeasure = NaN(7,4,numRandomizations+1);
 
-for i = 1:2
+for i = 1:numRandomizations+1
     %create a distance matrix for ref and tar with the condition
     refCondDist = distMat2(refCoordVec,condRandRealCoords(:,:,i));
     tarCondDist = distMat2(tarCoordVec,condRandRealCoords(:,:,i));
@@ -441,33 +439,30 @@ for i = 1:2
     tarNcondCoords.xCoord = tarCoordVec(tarNcondIdx,1);
     tarNcondCoords.yCoord = tarCoordVec(tarNcondIdx,2);
     
-    totalRefDetect = size(refCoordVec,1);
     numRefWcondDetect = length(refWcondIdx);
     numRefNcondDetect = length(refNcondIdx);
     
-    totalTarDetect = size(tarCoordVec,1);
     numTarWcondDetect = length(tarWcondIdx);
     numTarNcondDetect = length(tarNcondIdx);
     
     pRwC = numRefWcondDetect/totalRefDetect;
     pTwC = numTarWcondDetect/totalTarDetect;
     
-    colocalMeasure(8:9,1,i) = [pRwC; pTwC];
-
-    numOfObjects.AllTar(1,i) = totalTarDetect;
-    numOfObjects.TwC(1,i) = numTarWcondDetect;
-    numOfObjects.TnC(1,i) = numTarNcondDetect;
+    colocalMeasure(6:7,1,i) = [pRwC; pTwC];
     
+    numTwC(1,i) = numTarWcondDetect;
+    numTnC(1,i) = numTarNcondDetect;
+
     numOfObjects.ROIarea = numel(find(mask));
     
-    if flag
+    if isRefBlob
         numOfObjects.AllRef = nBlobs;
         numOfObjects.RefAreas = blobsizes;
         
     else
-        numOfObjects.AllRef(1,i) = totalRefDetect;
-        numOfObjects.RwC(1,i) = numRefWcondDetect;
-        numOfObjects.RnC(1,i) = numRefNcondDetect;
+        numOfObjects.AllRef(1,1) = totalRefDetect;
+        numRwC(1,i) = numRefWcondDetect;
+        numRnC(1,i) = numRefNcondDetect;
    
     end   
     
@@ -495,71 +490,59 @@ for i = 1:2
     end
 
 
-    %colocalization for PosPos
-    if numTarWcondDetect >= 20 && numRefWcondDetect >= 20
+    %colocalization for AllPos
+    if totalTarDetect >= 20 && numRefWcondDetect >= 20 && ~isRefBlob
         
     [colocalMeasure(3,1,i), colocalMeasure(3,2,i), colocalMeasure(3,3,i)] = ...
-        colocalMeasurePt2Pt(refWcondCoords, tarWcondCoords, colocDistThresh(1), mask, alpha);
+        colocalMeasurePt2Pt(refWcondCoords, tarCoordstruct, colocDistThresh(1), mask, alpha);
     
      colocalMeasure(3,1,i) = colocalMeasure(3,1,i)/pRwC;
      colocalMeasure(3,2,i) = colocalMeasure(3,2,i)/pRwC;
      
-    %calculate CP/null CP 
+    %calculate CP/null CP
     colocalMeasure(3,4,i) = colocalMeasure(3,1,i)/colocalMeasure(3,2,i);
     end
 
 
-    %colocalization for NegNeg
-    if numTarNcondDetect >= 20 && numRefNcondDetect >= 20
+    %colocalization for AllNeg
+    if totalTarDetect >= 20 && numRefNcondDetect >= 20 && ~isRefBlob
         
     [colocalMeasure(4,1,i), colocalMeasure(4,2,i), colocalMeasure(4,3,i)] = ...
-        colocalMeasurePt2Pt(refNcondCoords, tarNcondCoords, colocDistThresh(1), mask, alpha);
+        colocalMeasurePt2Pt(refNcondCoords, tarCoordstruct, colocDistThresh(1), mask, alpha);
+    
      colocalMeasure(4,1,i) = colocalMeasure(4,1,i)/(1-pRwC);
      colocalMeasure(4,2,i) = colocalMeasure(4,2,i)/(1-pRwC);
      
-    %calculate CP/null CP 
+    %calculate CP/null CP
     colocalMeasure(4,4,i) = colocalMeasure(4,1,i)/colocalMeasure(4,2,i);
-    end
-
-
-    %colocalization for AllPos
-    if totalTarDetect >= 20 && numRefWcondDetect >= 20
-        
-    [colocalMeasure(5,1,i), colocalMeasure(5,2,i), colocalMeasure(5,3,i)] = ...
-        colocalMeasurePt2Pt(refWcondCoords, tarCoordstruct, colocDistThresh(1), mask, alpha);
-    
-     colocalMeasure(5,1,i) = colocalMeasure(5,1,i)/pRwC;
-     colocalMeasure(5,2,i) = colocalMeasure(5,2,i)/pRwC;
-     
-    %calculate CP/null CP
-    colocalMeasure(5,4,i) = colocalMeasure(5,1,i)/colocalMeasure(5,2,i);
-    end
-
-
-    %colocalization for AllNeg
-    if totalTarDetect >= 20 && numRefNcondDetect >= 20
-        
-    [colocalMeasure(6,1,i), colocalMeasure(6,2,i), colocalMeasure(6,3,i)] = ...
-        colocalMeasurePt2Pt(refNcondCoords, tarCoordstruct, colocDistThresh(1), mask, alpha);
-    
-     colocalMeasure(6,1,i) = colocalMeasure(6,1,i)/(1-pRwC);
-     colocalMeasure(6,2,i) = colocalMeasure(6,2,i)/(1-pRwC);
-     
-    %calculate CP/null CP
-    colocalMeasure(6,4,i) = colocalMeasure(6,1,i)/colocalMeasure(6,2,i);
     end
 
     % colocalization for AllAll
     if totalTarDetect >= 20 && totalRefDetect >= 20
         
-    [colocalMeasure(7,1,i), colocalMeasure(7,2,i), colocalMeasure(7,3,i)] = ...
+    [colocalMeasure(5,1,i), colocalMeasure(5,2,i), colocalMeasure(5,3,i)] = ...
         colocalMeasurePt2Pt(refCoordstruct, tarCoordstruct, colocDistThresh(1), mask, alpha);
 
     %calculate CP/null CP
-    colocalMeasure(7,4,i) = colocalMeasure(7,1,i)/colocalMeasure(7,2,i);
+    colocalMeasure(5,4,i) = colocalMeasure(5,1,i)/colocalMeasure(5,2,i);
     end
 
 end
-%substitute Infs for NaN
-colocalMeasure(isinf(colocalMeasure)) = nan;
+
+%store number of objects
+numOfObjects.TwC(1,1) = numTwC(1,1);
+numOfObjects.TwC(1,2) = mean(numTwC(1,2:end),'omitnan');
+
+numOfObjects.TwC(1,1) = numTnC(1,1);
+numOfObjects.TnC(1,2) = mean(numTnC(1,2:end),'omitnan');
+
+numOfObjects.RwC(1,1) = numRwC(1,1);
+numOfObjects.RwC(1,2) = mean(numRwC(1,2:end),'omitnan');
+
+numOfObjects.RnC(1,1) = numRnC(1,1);
+numOfObjects.RnC(1,2) = mean(numRnC(1,2:end),'omitnan');
+
+%average coloc of all randomizations
+colocalMeasure(:,:,2) = mean(colocalMeasure(:,:,2:end),3,'omitnan');
+colocalMeasure(:,:,3:end) = [];
 end
